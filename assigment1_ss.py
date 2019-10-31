@@ -1,120 +1,135 @@
-import math
+from PIL import Image, ImageDraw
 import random
-import time
-import argparse
-import lhsmdu
-import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set()
+import matplotlib.pylab as plt
 
-iterations = 10000
-samples = 1000
+# MAX_ITER = 80
 
 
-def _apfelrekursion(c, max_recursion):
-    z = 0 + 0j
-    zehn = range(9)
-    while max_recursion > 0:
-                max_recursion = max_recursion - 9
-                #10 recursions at a time give a reasonable speed up. Doing more might end up in overflow errors.
-                for x in zehn:
-                    z = z * z + c
-                if (z.real > 2) | (z.real < -2) | (z.imag > 2)|(z.imag < -2):
-                    break
-    return z
+def mandelbrot(c, max_iterations):
+    z = 0
+    n = 0
+    while abs(z) <= 2 and n < max_iterations:
+        z = z*z + c
+        n += 1
+    return n
 
 
-def isinmandelbrot(c, max_recursion, iterations):
-    '''
-    checks if complex value z is part of the Mandelbrot set or not. Limit number of max recursions approx. to max_recursion.
-    Recursion:
-    z_0 = 0
-    z_{n+1} = z_n^2 + c
-    Complex value c is part of Mandelbrot_set if abs((z_n)_n) < inf for n approaching inf.
-    Find more at: http://en.wikipedia.org/wiki/Mandelbrot_set
-    '''
-    # cneu = _apfelrekursion(c, max_recursion)
-    cneu = _apfelrekursion(c, max_recursion, iterations)
-    return (cneu.real < 2) & (cneu.real > -2) & (cneu.imag < 2) & (cneu.imag > -2)
+for a in range(-10, 10, 5):
+    for b in range(-10, 10, 5):
+        c = complex(a / 10, b / 10)
+        # print(c, mandelbrot(c))
 
 
-def mandelbrot_area_mc(N, iterations):
-    '''
-    Performs Monte Carlo Integration to calculate Mandelbrot Sets Area using N samples.
-    Returns: (Area, Number of samples)
-    '''
-    ret = 0
-    n = N
-    while n > 0:
-        n = n - 1
-        # Dont want to assume symmetry
+# Image size (pixels)
+WIDTH = 600
+HEIGHT = 400
 
-        if isinmandelbrot(complex(random.uniform(-2, 0.5), random.uniform(-1, 1)), N, iterations):
-            ret += 1
+# Plot window
+RE_START = -2
+RE_END = 1
+IM_START = -1
+IM_END = 1
 
-    # Area is ret * (Area in cmplx plane the random numbers are covering)
-    return float(ret) * 5 / N, ret
+palette = []
 
-# def mandelbrot_area_mc(N):
-#     '''
-#     Performs Monte Carlo Integration to calculate Mandelbrot Sets Area using N points.
-#     Returns: (Area, Number of points)
-#     '''
-#     ret = 0
-#     n = N
-#     while n > 0:
-#         n = n - 1
-#         #Dont want to assume symmetry
-#         if isinmandelbrot(complex(random.uniform(-2, 0.5), random.uniform(-1, 1))):
-#             ret += 1
-#     #Area is ret * (Area in cmplx plane the random numbers are covering)
-#     return float(ret) * 5 / N, ret
+hits = 0
+samples = 0
 
-def comparable_test(iterations, samples):
+darts = 10
+total_colors = []
+
+
+def get_area(total_colors, darts):
     """
-    test if i and s are comparable
-    (for all j < i we compute Aj,s - Ai,s)
+    Throw darts darts in the domain and count how many hit the mandelbrot.
+    Calculate area with that number.
+    """
+    hits = 0
+
+    # throw darts
+    for i in range(darts):
+
+        # check if it landed in the mandelbrot
+        color = random.choice(total_colors)
+        print(total_colors, "COLOR")
+
+        count = 0
+        for j in range(len(total_colors)):
+            if color != 0:
+                count += 1
+        print(count, "ZO VAAK NIET NUL")
+
+        if color == 0:
+            hits += 1
+
+    # area = (hits / darts) * WIDTH * HEIGHT
+    area = hits / darts
+    print(hits, "HITS")
+    print(darts, "DARTS")
+
+    return area
+
+
+def compare_area(iterations, darts):
+
+    area_is = get_area(make_mandelbrot(iterations), darts)
+    print(area_is)
+    print("-------")
+
+    compare_list = []
+    for j in range(iterations - 2):
+        print(j + 1, "ITERATIONS")
+
+        area_js = get_area(make_mandelbrot(j + 1), darts)
+        difference = area_js - area_is
+        compare_list.append(difference)
+        print(area_js)
+        break
+
+    print(compare_list)
+
+
+def make_mandelbrot(iterations):
+    """
+    Return a list of colors in the Mandelbrot set.
     """
 
-    area_is = mandelbrot_area_mc(samples)
 
-    for i in range(iterations):
-        j = iterations - i
+    palette = []
 
+    # im = Image.new('RGB', (WIDTH, HEIGHT), (0, 0, 0))
+    # draw = ImageDraw.Draw(im)
 
-if __name__ == '__main__':
+    for x in range(0, WIDTH):
+        for y in range(0, HEIGHT):
+            # Convert pixel coordinate to complex number
+            c = complex(RE_START + (x / WIDTH) * (RE_END - RE_START),
+                        IM_START + (y / HEIGHT) * (IM_END - IM_START))
+            # Compute the number of iterations
+            m = mandelbrot(c, iterations)
 
-    total = []
-    samples_total = []
-    iterations_total = []
+            # The color depends on the number of iterations
+            color = 255 - int(m * 255 / iterations)
 
-    for x in range(10):
+            total_colors.append(color)
 
-        iterations = iterations / 2
-        samples = samples / 2
-        iterations_total.append(iterations)
-        samples_total.append(samples)
+    # im.show()
 
-        parser = argparse.ArgumentParser(description='''Calculating the Mandelbrot Set Area in Complex plane using Monte Carlo integration.
-        Unconfirmed theory guesses the Area to be sqrt(6*pi - 1) - e = 1.506591...
-        See also: http://en.wikipedia.org/wiki/Mandelbrot_set''')
-        parser.add_argument('-n', type=float, help='Number of samples to use for Monte Carlo integration.', default=10000)
-        args = parser.parse_args()
-
-        N = int(args.n)
-        print('Starting Monte Carlo using %s samples...' % N)
-        startzeit = time.time()
-        area, A = mandelbrot_area_mc(samples, iterations)
-        std = (5 * math.sqrt(float(A)) / N)
-        print('Area:        ' + str(area))
-        print('Area StdDev: ' + str(std))
-        print('Time (sec):  ' + str(time.time() - startzeit))
-
-        total.append(std)
+    # print(total_colors)
+    return total_colors
 
 
-    plt.plot(iterations_total, total)
-    plt.show()
+make_mandelbrot(1)
+compare_area(10, 10)
 
-    plt.plot(samples_total, total)
-    plt.show()
+
+# total_correct_hits = []
+# total_darts = []
+# for i in range(4):
+#     correct_hits = get_area(total_colors, darts)
+#     darts = darts * 5
+#     total_correct_hits.append((correct_hits / darts) * (WIDTH * HEIGHT))
+#     total_darts.append(darts)
+#
+# plt.plot(total_darts, total_correct_hits)
+# plt.show()
