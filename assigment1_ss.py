@@ -2,8 +2,6 @@ from PIL import Image, ImageDraw
 import random
 import matplotlib.pylab as plt
 
-# MAX_ITER = 80
-
 
 def mandelbrot(c, max_iterations):
     z = 0
@@ -21,8 +19,10 @@ for a in range(-10, 10, 5):
 
 
 # Image size (pixels)
-WIDTH = 600
-HEIGHT = 400
+# WIDTH = 600
+# HEIGHT = 400
+WIDTH = 6
+HEIGHT = 4
 
 # Plot window
 RE_START = -2
@@ -31,11 +31,8 @@ IM_START = -1
 IM_END = 1
 
 palette = []
-
 hits = 0
 samples = 0
-
-darts = 10
 total_colors = []
 
 
@@ -51,42 +48,35 @@ def get_area(total_colors, darts):
 
         # check if it landed in the mandelbrot
         color = random.choice(total_colors)
-        print(total_colors, "COLOR")
 
         count = 0
         for j in range(len(total_colors)):
             if color != 0:
                 count += 1
-        print(count, "ZO VAAK NIET NUL")
+        # print(count, "ZO VAAK NIET NUL")
 
-        if color == 0:
+        if color != 0:
             hits += 1
 
-    # area = (hits / darts) * WIDTH * HEIGHT
+    area = (hits / darts) * WIDTH * HEIGHT # TODO
     area = hits / darts
-    print(hits, "HITS")
-    print(darts, "DARTS")
 
     return area
 
 
 def compare_area(iterations, darts):
-
     area_is = get_area(make_mandelbrot(iterations), darts)
     print(area_is)
     print("-------")
 
     compare_list = []
     for j in range(iterations - 2):
-        print(j + 1, "ITERATIONS")
 
         area_js = get_area(make_mandelbrot(j + 1), darts)
         difference = area_js - area_is
         compare_list.append(difference)
-        print(area_js)
-        break
 
-    print(compare_list)
+    return area_is # TODO
 
 
 def make_mandelbrot(iterations):
@@ -119,17 +109,21 @@ def make_mandelbrot(iterations):
     return total_colors
 
 
-make_mandelbrot(1)
-compare_area(10, 10)
+def make_plot():
+    """
+    Plot the number of hits against number of iterations.
+    """
+
+    total = []
+    darts = 10
+    for i in range(1, 40):
+        total.append(compare_area(i, 10))
+
+    plt.ylabel("Number of hits with " + str(darts) + "darts")
+    plt.xlabel("Number of iterations")
+    plt.plot(total)
+    plt.show()
 
 
-# total_correct_hits = []
-# total_darts = []
-# for i in range(4):
-#     correct_hits = get_area(total_colors, darts)
-#     darts = darts * 5
-#     total_correct_hits.append((correct_hits / darts) * (WIDTH * HEIGHT))
-#     total_darts.append(darts)
-#
-# plt.plot(total_darts, total_correct_hits)
-# plt.show()
+if __name__ == '__main__':
+    make_plot()
