@@ -2,6 +2,7 @@ from PIL import Image, ImageDraw
 import random
 import matplotlib.pylab as plt
 import numba
+import scipy.linalg
 
 import numpy as np
 
@@ -53,19 +54,10 @@ def get_area(total_colors, darts):
         # check if it landed in the mandelbrot
         color = random.choice(total_colors)
 
-        # count = 0
-        # for j in total_colors:
-        #     if j != 0:
-        #         count += 1
-        # print(count, "ZO VAAK NIET NUL")
-        # print(len(total_colors))
-
         if color == 0:
             hits += 1
 
     area = (hits / darts) * 6
-
-    # moet 1.507 zijn
 
     return area
 
@@ -93,7 +85,6 @@ def get_area_lhs(total_colors, darts):
             x = WIDTH - 1
         if y > HEIGHT - 1:
             y = HEIGHT - 1
-        # print("Point", total_colors[y][x])
         color = total_colors[y][x]
 
         if color == 0:
@@ -101,7 +92,33 @@ def get_area_lhs(total_colors, darts):
 
     area = (hits / darts) * 6
 
-    # moet 1.507 zijn
+    return area
+
+
+def get_area_ortho(total_colors, darts):
+    """
+    Throw darts in the domain and count how many hit the mandelbrot.
+    Calculate area with orthogonal sampling.
+    """
+    hits = 0
+
+    # Split into four matrixes
+    x = np.split(np.array(total_colors), 4)
+
+    # get part
+    part = int(np.floor(darts / 4))
+
+    # throw darts
+    for i in range(part):
+
+        # Get a sample in every matrix
+        for j in x:
+            # check if it landed in the mandelbrot
+            color = random.choice(total_colors)
+            if color == 0:
+                hits += 1
+
+    area = (hits / darts) * 6
 
     return area
 
@@ -158,7 +175,8 @@ def compare_s(iterations, max_darts):
 
     area_list = []
     for s in range(max_darts - 1):
-        area_i = get_area(make_mandelbrot(iterations), s + 1)
+        # area_i = get_area(make_mandelbrot(iterations), s + 1)
+        area_i = get_area_ortho(make_mandelbrot(s + 1), s + 1)
         area_list.append(area_i)
 
     plt.xlabel("Number of iterations")
@@ -193,8 +211,6 @@ def make_mandelbrot(iterations):
 
             # plot the point
             # draw.point([x, y], (color, color, color))
-
-
             total_colors.append(color)
 
     # im.show()
@@ -226,4 +242,4 @@ if __name__ == '__main__':
 
     # compare_s(100, 100)
 
-    compare_s(500, 300)
+    compare_s(50, 50)
