@@ -1,8 +1,9 @@
 from PIL import Image, ImageDraw
 import random
 import matplotlib.pylab as plt
+import numba
 
-
+@numba.jit(nopython=True, parallel=True)
 def mandelbrot(c, max_iterations):
     z = 0
     n = 0
@@ -12,17 +13,17 @@ def mandelbrot(c, max_iterations):
     return n
 
 
-for a in range(-10, 10, 5):
-    for b in range(-10, 10, 5):
-        c = complex(a / 10, b / 10)
-        # print(c, mandelbrot(c))
+# for a in range(-10, 10, 5):
+#     for b in range(-10, 10, 5):
+#         c = complex(a / 10, b / 10)
+#         # print(c, mandelbrot(c))
 
 
 # Image size (pixels)
 # WIDTH = 600
 # HEIGHT = 400
-WIDTH = 6
-HEIGHT = 4
+WIDTH = 600
+HEIGHT = 400
 
 # Plot window
 RE_START = -2
@@ -30,10 +31,8 @@ RE_END = 1
 IM_START = -1
 IM_END = 1
 
-palette = []
 hits = 0
 samples = 0
-total_colors = []
 
 
 def get_area(total_colors, darts):
@@ -49,47 +48,97 @@ def get_area(total_colors, darts):
         # check if it landed in the mandelbrot
         color = random.choice(total_colors)
 
-        count = 0
-        for j in range(len(total_colors)):
-            if color != 0:
-                count += 1
+        # count = 0
+        # for j in total_colors:
+        #     if j != 0:
+        #         count += 1
         # print(count, "ZO VAAK NIET NUL")
+        # print(len(total_colors))
 
-        if color != 0:
+        if color == 0:
             hits += 1
 
-    area = (hits / darts) * WIDTH * HEIGHT # TODO
-    area = hits / darts
+    area = (hits / darts) * 6
+
+    # moet 1.507 zijn
 
     return area
 
 
 def compare_area(iterations, darts):
     area_is = get_area(make_mandelbrot(iterations), darts)
-    print(area_is)
-    print("-------")
 
     compare_list = []
-    for j in range(iterations - 2):
-
+    j_list = []
+    area_js_list = []
+    for j in range(iterations - 1):
+        iterations = j + 1
         area_js = get_area(make_mandelbrot(j + 1), darts)
         difference = area_js - area_is
         compare_list.append(difference)
+        j_list.append(j + 1)
+        area_js_list.append(area_js)
 
-    return area_is # TODO
+        # if difference < compare_list[-1]:
+
+    # plt.xlabel("j")
+    # plt.ylabel("A_j,s - A_i,s")
+    # plt.plot(j_list, compare_list)
+    # plt.show()
+    #
+    plt.xlabel("j")
+    plt.ylabel("A_j,s")
+    plt.plot(j_list, area_js_list)
+    area_line = []
+    for i in range(len(j_list)):
+        area_line.append(1.507)
+    plt.plot(j_list, area_line)
+    plt.show()
+
+    print(area_js_list)
+    print(sum(area_js_list)/len(area_js_list))
+
+    return compare_list
+
+def compare_i(max_iterations, darts):
+
+    area_list = []
+    for i in range(max_iterations - 1):
+        area_i = get_area(make_mandelbrot(i + 1), darts)
+        area_list.append(area_i)
+
+    plt.xlabel("Number of iterations")
+    plt.ylabel("Area_i,s")
+    plt.plot(range(1, max_iterations), area_list)
+    plt.show()
+
+
+def compare_s(iterations, max_darts):
+
+    area_list = []
+    for s in range(max_darts - 1):
+        area_i = get_area(make_mandelbrot(iterations), s + 1)
+        area_list.append(area_i)
+
+    plt.xlabel("Number of iterations")
+    plt.ylabel("Area_i,s")
+    plt.plot(range(1, max_darts), area_list)
+    area_line = []
+    print(len(area_list))
+    for i in range(len(area_list)):
+        area_line.append(1.507)
+    plt.plot(range(1, max_darts), area_line)
+    plt.show()
 
 
 def make_mandelbrot(iterations):
     """
     Return a list of colors in the Mandelbrot set.
     """
-
-
-    palette = []
-
     # im = Image.new('RGB', (WIDTH, HEIGHT), (0, 0, 0))
     # draw = ImageDraw.Draw(im)
 
+    total_colors = []
     for x in range(0, WIDTH):
         for y in range(0, HEIGHT):
             # Convert pixel coordinate to complex number
@@ -101,11 +150,14 @@ def make_mandelbrot(iterations):
             # The color depends on the number of iterations
             color = 255 - int(m * 255 / iterations)
 
+            # plot the point
+            # draw.point([x, y], (color, color, color))
+
+
             total_colors.append(color)
 
     # im.show()
 
-    # print(total_colors)
     return total_colors
 
 
@@ -126,4 +178,8 @@ def make_plot():
 
 
 if __name__ == '__main__':
-    make_plot()
+    # make_plot()
+    # compare_area(1000, 700)
+    # compare_i(100, 70)
+    # make_mandelbrot(100)
+    compare_s(500, 300)
