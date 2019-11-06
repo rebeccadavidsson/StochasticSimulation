@@ -2,9 +2,14 @@ from PIL import Image, ImageDraw
 import random
 import matplotlib.pylab as plt
 import numba
+<<<<<<< HEAD
 import numpy as np
 
 # @numba.jit(nopython=True, parallel=True)
+=======
+
+@numba.jit(nopython=True, parallel=True)
+>>>>>>> 540f29dc1d49dfef268db11f6c545fb7a2119fb7
 def mandelbrot(c, max_iterations):
     z = 0
     n = 0
@@ -96,7 +101,8 @@ def get_area_lhs(total_colors, darts):
             hits += 1
 
     area = (hits / darts) * 6
-    # area = hits / darts
+
+    # moet 1.507 zijn
 
     return area
 
@@ -147,8 +153,13 @@ def compare_i(max_iterations, darts):
     plt.ylabel("Area_i,s")
     plt.plot(range(1, max_iterations), area_list)
     plt.show()
+<<<<<<< HEAD
 
 
+=======
+
+
+>>>>>>> 540f29dc1d49dfef268db11f6c545fb7a2119fb7
 def compare_s(iterations, max_darts):
 
     area_list = []
@@ -218,4 +229,8 @@ if __name__ == '__main__':
     # compare_area(1000, 700)
     # compare_i(100, 70)
     # make_mandelbrot(100)
+<<<<<<< HEAD
     compare_s(100, 100)
+=======
+    compare_s(500, 300)
+>>>>>>> 540f29dc1d49dfef268db11f6c545fb7a2119fb7
