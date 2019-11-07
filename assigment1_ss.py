@@ -1,9 +1,12 @@
 from PIL import Image, ImageDraw
 import random
 import matplotlib.pylab as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
 import numba
+import numpy as np
 
-@numba.jit(nopython=True, parallel=True)
+@numba.jit(nopython=True)
 def mandelbrot(c, max_iterations):
     z = 0
     n = 0
@@ -124,7 +127,6 @@ def compare_s(iterations, max_darts):
     plt.ylabel("Area_i,s")
     plt.plot(range(1, max_darts), area_list)
     area_line = []
-    print(len(area_list))
     for i in range(len(area_list)):
         area_line.append(1.507)
     plt.plot(range(1, max_darts), area_line)
@@ -176,10 +178,89 @@ def make_plot():
     plt.plot(total)
     plt.show()
 
+def make_3dplot(max_iterations, max_darts):
+    darts = []
+    iterations = []
+    area = []
+    # darts = np.array([])
+    # iterations = np.array([])
+    # area = np.array([])
+    for i in range(max_iterations - 1):
+        for s in range(max_darts - 1):
+            area_is = get_area(make_mandelbrot(i + 1), s + 1)
+            iterations.append(i + 1)
+            darts.append(s + 1)
+            area.append(area_is)
+            # np.append(iterations, i + 1)
+            # np.append(darts, s + 1)
+            # np.append(area, area_is)
+
+    # scatter plot
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    ax.scatter(iterations, darts, area)
+    print(iterations)
+    print(darts)
+    print(area)
+
+    ax.set_xlabel('Iterations')
+    ax.set_ylabel('Darts')
+    ax.set_zlabel('Area')
+
+    plt.show()
+
+    # # surface plot <--- GAAT NOG NIET GOED!!
+    # fig = plt.figure()
+    # ax = fig.gca(projection='3d')
+    #
+    # iterations = []
+    # darts = []
+    # area = []
+    # for i in range(max_iterations - 1):
+    #     iterations.append(i + 1)
+    #     area_s = []
+    #     for s in range(max_darts - 1):
+    #         area_is = get_area(make_mandelbrot(i + 1), s + 1)
+    #         area_s.append(area_is)
+    #     area.append(area_s)
+    # for s in range(max_darts - 1):
+    #     darts.append(s + 1)
+    #
+    # print(iterations)
+    # print(darts)
+    # print(area)
+    #
+    # # Plot the surface.
+    # surf = ax.plot_surface(np.asarray(iterations), np.asarray(darts), np.asarray(area), cmap=cm.coolwarm)
+    #
+    # # Add a color bar which maps values to colors.
+    # fig.colorbar(surf, shrink=0.5, aspect=5)
+    #
+    # plt.show()
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     # make_plot()
     # compare_area(1000, 700)
     # compare_i(100, 70)
     # make_mandelbrot(100)
-    compare_s(500, 300)
+    # compare_s(500, 300)
+    make_3dplot(40, 40)
+
+    # X = np.arange(-5, 5, 0.25)
+    # Y = np.arange(-5, 5, 0.25)
+    # print(X)
+    # print("------")
+    # X, Y = np.meshgrid(X, Y)
+    # R = np.sqrt(X**2 + Y**2)
+    # Z = np.sin(R)
+    # print(X)
+    # print(Y)
+    # print(Z)
