@@ -5,6 +5,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import numba
 import numpy as np
+import scipy.linalg
 
 @numba.jit(nopython=True)
 def mandelbrot(c, max_iterations):
@@ -51,19 +52,71 @@ def get_area(total_colors, darts):
         # check if it landed in the mandelbrot
         color = random.choice(total_colors)
 
-        # count = 0
-        # for j in total_colors:
-        #     if j != 0:
-        #         count += 1
-        # print(count, "ZO VAAK NIET NUL")
-        # print(len(total_colors))
+        if color == 0:
+            hits += 1
+
+    area = (hits / darts) * 6
+
+    return area
+
+
+def get_area_lhs(total_colors, darts):
+    """
+    Throw darts darts in the domain and count how many hit the mandelbrot.
+    Get random numbers through the LHS method.
+    """
+    hits = 0
+
+    # Get list of latin-hybercube sampled values in 2 dimensions (X and Y)
+    lhd = lhs(2, samples=darts)
+
+    total_colors = np.array(total_colors).reshape(HEIGHT, WIDTH)
+
+    count = 0
+    for j in range(len(lhd)):
+
+        # Get x and y coordinate
+        x, y = lhd[j][0], lhd[j][1]
+        x = (int(round(x * WIDTH)))
+        y = (int(round(y * HEIGHT)))
+        if x > WIDTH - 1:
+            x = WIDTH - 1
+        if y > HEIGHT - 1:
+            y = HEIGHT - 1
+        color = total_colors[y][x]
 
         if color == 0:
             hits += 1
 
     area = (hits / darts) * 6
 
-    # moet 1.507 zijn
+    return area
+
+
+def get_area_ortho(total_colors, darts):
+    """
+    Throw darts in the domain and count how many hit the mandelbrot.
+    Calculate area with orthogonal sampling.
+    """
+    hits = 0
+
+    # Split into four matrixes
+    x = np.split(np.array(total_colors), 4)
+
+    # get part
+    part = int(np.floor(darts / 4))
+
+    # throw darts
+    for i in range(part):
+
+        # Get a sample in every matrix
+        for j in x:
+            # check if it landed in the mandelbrot
+            color = random.choice(total_colors)
+            if color == 0:
+                hits += 1
+
+    area = (hits / darts) * 6
 
     return area
 
@@ -120,7 +173,8 @@ def compare_s(iterations, max_darts):
 
     area_list = []
     for s in range(max_darts - 1):
-        area_i = get_area(make_mandelbrot(iterations), s + 1)
+        # area_i = get_area(make_mandelbrot(iterations), s + 1)
+        area_i = get_area_ortho(make_mandelbrot(s + 1), s + 1)
         area_list.append(area_i)
 
     plt.xlabel("Number of iterations")
@@ -154,8 +208,6 @@ def make_mandelbrot(iterations):
 
             # plot the point
             # draw.point([x, y], (color, color, color))
-
-
             total_colors.append(color)
 
     # im.show()
@@ -252,15 +304,9 @@ if __name__ == '__main__':
     # compare_i(100, 70)
     # make_mandelbrot(100)
     # compare_s(500, 300)
-    make_3dplot(40, 40)
+    # make_3dplot(40, 40)
 
-    # X = np.arange(-5, 5, 0.25)
-    # Y = np.arange(-5, 5, 0.25)
-    # print(X)
-    # print("------")
-    # X, Y = np.meshgrid(X, Y)
-    # R = np.sqrt(X**2 + Y**2)
-    # Z = np.sin(R)
-    # print(X)
-    # print(Y)
-    # print(Z)
+
+    # compare_s(100, 100)
+
+    # compare_s(50, 50)
