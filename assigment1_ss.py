@@ -1,10 +1,13 @@
 from PIL import Image, ImageDraw
 import random
 import matplotlib.pylab as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
 import numba
 import numpy as np
 import seaborn as sns
 from pyDOE import *
+import scipy.linalg
 sns.set()
 
 
@@ -270,6 +273,73 @@ def make_plot():
     plt.plot(total)
     plt.show()
 
+def make_3dplot(max_iterations, max_darts):
+    darts = []
+    iterations = []
+    area = []
+    # darts = np.array([])
+    # iterations = np.array([])
+    # area = np.array([])
+    for i in range(max_iterations - 1):
+        for s in range(max_darts - 1):
+            area_is = get_area(make_mandelbrot(i + 1), s + 1)
+            iterations.append(i + 1)
+            darts.append(s + 1)
+            area.append(area_is)
+            # np.append(iterations, i + 1)
+            # np.append(darts, s + 1)
+            # np.append(area, area_is)
+
+    # scatter plot
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    ax.scatter(iterations, darts, area)
+    print(iterations)
+    print(darts)
+    print(area)
+
+    ax.set_xlabel('Iterations')
+    ax.set_ylabel('Darts')
+    ax.set_zlabel('Area')
+
+    plt.show()
+
+    # # surface plot <--- GAAT NOG NIET GOED!!
+    # fig = plt.figure()
+    # ax = fig.gca(projection='3d')
+    #
+    # iterations = []
+    # darts = []
+    # area = []
+    # for i in range(max_iterations - 1):
+    #     iterations.append(i + 1)
+    #     area_s = []
+    #     for s in range(max_darts - 1):
+    #         area_is = get_area(make_mandelbrot(i + 1), s + 1)
+    #         area_s.append(area_is)
+    #     area.append(area_s)
+    # for s in range(max_darts - 1):
+    #     darts.append(s + 1)
+    #
+    # print(iterations)
+    # print(darts)
+    # print(area)
+    #
+    # # Plot the surface.
+    # surf = ax.plot_surface(np.asarray(iterations), np.asarray(darts), np.asarray(area), cmap=cm.coolwarm)
+    #
+    # # Add a color bar which maps values to colors.
+    # fig.colorbar(surf, shrink=0.5, aspect=5)
+    #
+    # plt.show()
+
+
+
+
+
+
+
 
 def calculate_variance(n, darts):
     """
@@ -354,10 +424,10 @@ def make_linegraph():
 
 if __name__ == '__main__':
 
-    # # Barplot :)
-    # iterations = 100
-    # darts = 100
-    # vars, means = calculate_variance(iterations, darts)
-    # make_barplot(vars, means)
+    # Barplot :)
+    iterations = 100
+    darts = 100
+    vars, means = calculate_variance(iterations, darts)
+    make_barplot(vars, means)
 
     make_linegraph()

@@ -1,12 +1,16 @@
 from PIL import Image, ImageDraw
 import random
-from pyDOE import lhs
-import numpy as np
 import matplotlib.pylab as plt
 import numba
+import numpy as np
+import seaborn as sns
+from pyDOE import *
+sns.set()
 
 
-# @numba.jit(nopython=True, parallel=True)
+
+
+@numba.jit(nopython=True)
 def mandelbrot(c, max_iterations):
     z = 0
     n = 0
@@ -15,18 +19,18 @@ def mandelbrot(c, max_iterations):
         n += 1
     return n
 
-#
+
 # for a in range(-10, 10, 5):
 #     for b in range(-10, 10, 5):
 #         c = complex(a / 10, b / 10)
-        # print(c, mandelbrot(c))
+#         # print(c, mandelbrot(c))
 
 
 # Image size (pixels)
 # WIDTH = 600
 # HEIGHT = 400
-WIDTH = 6
-HEIGHT = 4
+WIDTH = 600
+HEIGHT = 400
 
 # Plot window
 RE_START = -2
@@ -34,7 +38,6 @@ RE_END = 1
 IM_START = -1
 IM_END = 1
 
-palette = []
 hits = 0
 samples = 0
 
@@ -52,17 +55,11 @@ def get_area(total_colors, darts):
         # check if it landed in the mandelbrot
         color = random.choice(total_colors)
 
-        # count = 0
-        # for j in range(len(total_colors)):
-        #     if color != 0:
-        #         count += 1
-
         if color == 0:
             hits += 1
 
-    area = (hits / darts) * 6 / 1.5
-    # area = hits / darts
-    # print(hits, area)
+    area = (hits / darts) * 6
+
     return area
 
 
@@ -89,67 +86,172 @@ def get_area_lhs(total_colors, darts):
             x = WIDTH - 1
         if y > HEIGHT - 1:
             y = HEIGHT - 1
-        # print("Point", total_colors[y][x])
         color = total_colors[y][x]
 
         if color == 0:
             hits += 1
 
     area = (hits / darts) * 6
-    # area = hits / darts
 
     return area
 
 
-def compare_area(iterations, darts, method):
+def generate_o(major):
+    values_i = []
+    values_r = []
+    max_i = 10
+    min_i = 1
+    max_r = 2
+    min_r = 5
 
-    if method == "lhs":
-        area_is = get_area_lhs(make_mandelbrot(iterations), darts)
-    elif method == "pure":
-        area_is = get_area(make_mandelbrot(iterations), darts)
+    samples = major * major
 
-    # print(area_is)
-    # print("-------")
+    scale_i = (max_i - min_i) / samples
+    scale_r = (max_r - min_r) / samples
 
-    # compare_list = []
-    # for j in range(iterations - 2):
+    xlist = [[0 for i in range(major)] for j in range(major)]
+    ylist = [[0 for i in range(major)] for j in range(major)]
+
+    m = 0
+
+    for i in range(major):
+        for j in range(major):
+            xlist[i][j] = ylist[i][j] = m
+            m += 1
+
+    np.random.shuffle(xlist)
+    np.random.shuffle(ylist)
+
+    for i in range(major):
+        for j in range(major):
+            values_i.append(min_i + scale_i * (xlist[i][j] + np.random.random() ))
+            values_r.append(min_r + scale_r * (xlist[j][i] + np.random.random() ))
+
+    return values_i, values_r
+
+
+def get_area_ortho(total_colors, darts):
+    """
+    Throw darts in the domain and count how many hit the mandelbrot.
+    Calculate area with orthogonal sampling.
+    """
+    hits = 0
+
+    # Split into four matrixes
+    x = np.split(np.array(total_colors), 4)
+
+    # get part
+    part = int(np.floor(darts / 4))
+
+    # throw darts
+    for i in range(part):
+
+        # Get a sample in every matrix
+        for j in x:
+            # check if it landed in the mandelbrot
+            color = random.choice(total_colors)
+            if color == 0:
+                hits += 1
+
+    area = (hits / darts) * 6
+
+    return area
+
+
+def compare_area(iterations, darts):
+    area_is = get_area(make_mandelbrot(iterations), darts)
+
+    compare_list = []
+    j_list = []
+    area_js_list = []
+    for j in range(iterations - 1):
+        iterations = j + 1
+        area_js = get_area(make_mandelbrot(j + 1), darts)
+        difference = area_js - area_is
+        compare_list.append(difference)
+        j_list.append(j + 1)
+        area_js_list.append(area_js)
+
+        # if difference < compare_list[-1]:
+
+    # plt.xlabel("j")
+    # plt.ylabel("A_j,s - A_i,s")
+    # plt.plot(j_list, compare_list)
+    # plt.show()
     #
-    #     area_js = get_area(make_mandelbrot(j + 1), darts)
-    #     difference = area_js - area_is
-    #     compare_list.append(difference)
+    plt.xlabel("j")
+    plt.ylabel("A_j,s")
+    plt.plot(j_list, area_js_list)
+    area_line = []
+    for i in range(len(j_list)):
+        area_line.append(1.507)
+    plt.plot(j_list, area_line)
+    plt.show()
 
-    return area_is # TODO
+    print(area_js_list)
+    print(sum(area_js_list)/len(area_js_list))
+
+    return compare_list
+
+
+def compare_i(max_iterations, darts):
+
+    area_list = []
+    for i in range(max_iterations - 1):
+        area_i = get_area(make_mandelbrot(i + 1), darts)
+        area_list.append(area_i)
+
+    plt.xlabel("Number of iterations")
+    plt.ylabel("Area_i,s")
+    plt.plot(range(1, max_iterations), area_list)
+    plt.show()
+
+
+def compare_s(iterations, max_darts):
+
+    area_list = []
+    for s in range(max_darts - 1):
+        area_i = get_area(make_mandelbrot(iterations), s + 1)
+        # area_i = get_area_ortho(make_mandelbrot(s + 1), s + 1)
+        area_list.append(area_i)
+
+    # plt.xlabel("Number of iterations")
+    # plt.ylabel("Area_i,s")
+    # plt.plot(range(1, max_darts), area_list)
+    # area_line = []
+    # print(len(area_list))
+    # for i in range(len(area_list)):
+    #     area_line.append(1.507)
+    # plt.plot(range(1, max_darts), area_line)
+    # plt.show()
+    return area_list
 
 
 def make_mandelbrot(iterations):
     """
     Return a list of colors in the Mandelbrot set.
     """
-
-    total_colors = []
-    palette = []
-
     # im = Image.new('RGB', (WIDTH, HEIGHT), (0, 0, 0))
     # draw = ImageDraw.Draw(im)
 
+    total_colors = []
     for x in range(0, WIDTH):
         for y in range(0, HEIGHT):
-
             # Convert pixel coordinate to complex number
             c = complex(RE_START + (x / WIDTH) * (RE_END - RE_START),
                         IM_START + (y / HEIGHT) * (IM_END - IM_START))
-            # c = complex(x, y)
             # Compute the number of iterations
             m = mandelbrot(c, iterations)
 
             # The color depends on the number of iterations
             color = 255 - int(m * 255 / iterations)
 
+            # plot the point
+            # draw.point([x, y], (color, color, color))
             total_colors.append(color)
 
     # im.show()
 
-    # print(total_colors)
     return total_colors
 
 
@@ -158,28 +260,104 @@ def make_plot():
     Plot the number of hits against number of iterations.
     """
 
-    methods = ["pure", "lhs"]
+    total = []
     darts = 10
+    for i in range(1, 40):
+        total.append(compare_area(i, 10))
+
+    plt.ylabel("Number of hits with " + str(darts) + "darts")
+    plt.xlabel("Number of iterations")
+    plt.plot(total)
+    plt.show()
+
+
+def calculate_variance(n, darts):
+    """
+    Calculate variance of all three methods.
+    """
+
+    # n = ((1.96/0.05)^2) * ((area/1.506)-1)
+
+    methods = ["pure", "LHS", "ortho"]
+
+    vars, means = [], []
 
     for method in methods:
-        total = []
-        horizontal = []
-        j = 20
-        for i in range(1, 400):
-            total.append(compare_area(i, j, method))
-            if j % 5 == 0:
-                j = j + 10
-            horizontal.append(1.509)
-        print(total)
-        print(np.mean(total))
+        # total = []
+        # for i in range(min, max):
+        #     total.append(compare_s(i, 10))
+        areas = compare_s(n, darts)
+        vars.append(np.var(areas))
+        means.append(np.mean(areas))
+        print(method, "var", round(np.var(areas), 2), "mean", round(np.mean(areas), 2))
 
-        plt.title(method)
-        plt.ylabel("Area ")
-        plt.xlabel("Number of iterations")
-        plt.plot(total)
-        plt.plot(horizontal)
-        plt.show()
+    return vars, means
+
+
+def make_barplot(vars, means):
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    methods = ["pure", "LHS", "ortho"]
+    width = 0.27
+    ticks = 3
+    ind = np.arange(ticks)
+
+    yvals = vars
+    rects1 = ax.bar(ind, yvals, width, color='r')
+    zvals = means
+    rects2 = ax.bar(ind+width, zvals, width, color='g')
+
+    ax.set_ylabel('Scores')
+    ax.set_xticks(ind)
+    ax.set_xticklabels(methods)
+    ax.legend((rects1[0], rects2[0]), ('Variance', 'Mean'))
+
+    def autolabel(rects):
+        for rect in rects:
+            h = rect.get_height()
+            ax.text(rect.get_x()+rect.get_width()/2., 1.05*h, round(h,3),
+                    ha='center', va='bottom')
+
+    autolabel(rects1)
+    autolabel(rects2)
+    plt.title("n = 100, darts = 100")
+
+    plt.show()
+
+def make_linegraph():
+    methods = ["pure", "LHS", "ortho"]
+    iterations = 10
+    darts = 10
+    totalvars, totalmeans, iteration = [], [], []
+    for i in range(1, 10):
+        vars, means = calculate_variance(iterations, darts)
+        totalvars.append(vars)
+        totalmeans.append(means)
+        iteration.append(i)
+        iterations += 10
+        darts += 50
+
+    plt.plot(iteration, totalmeans)
+    plt.legend(methods)
+    plt.xlabel("Iterations")
+    plt.ylabel("Mean estimated area")
+    plt.show()
+
+    plt.plot(iteration, totalvars)
+    plt.legend(methods)
+    plt.xlabel("Iterations")
+    plt.ylabel("Variance")
+    plt.show()
+
 
 
 if __name__ == '__main__':
-    make_plot()
+
+    # # Barplot :)
+    # iterations = 100
+    # darts = 100
+    # vars, means = calculate_variance(iterations, darts)
+    # make_barplot(vars, means)
+
+    make_linegraph()
