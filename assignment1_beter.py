@@ -5,6 +5,7 @@ import numba
 import numpy as np
 import seaborn as sns
 from pyDOE import *
+from random import randrange
 sns.set()
 
 
@@ -48,19 +49,25 @@ def get_area(total_colors, darts):
     Calculate area with that number.
     """
     hits = 0
+    hit_list = []
 
     # throw darts
     for i in range(darts):
 
         # check if it landed in the mandelbrot
-        color = random.choice(total_colors)
+        # color = random.choice(total_colors)
+
+        # check if it landed in the mandelbrot + remember where darts where thrown
+        index = randrange(len(total_colors))
+        color = total_colors[index]
+        hit_list.append(index)
 
         if color == 0:
             hits += 1
 
     area = (hits / darts) * 6
 
-    return area
+    return area, hit_list
 
 
 def get_area_lhs(total_colors, darts):
@@ -69,11 +76,13 @@ def get_area_lhs(total_colors, darts):
     Get random numbers through the LHS method.
     """
     hits = 0
+    hit_list = []
 
     # Get list of latin-hybercube sampled values in 2 dimensions (X and Y)
     lhd = lhs(2, samples=darts)
 
     total_colors = np.array(total_colors).reshape(HEIGHT, WIDTH)
+    color_row = len(total_colors[0])
 
     count = 0
     for j in range(len(lhd)):
@@ -91,9 +100,11 @@ def get_area_lhs(total_colors, darts):
         if color == 0:
             hits += 1
 
+        hit_list.append((y) * color_row + x)
+
     area = (hits / darts) * 6
 
-    return area
+    return area, hit_list
 
 
 def generate_o(major):
@@ -130,15 +141,16 @@ def generate_o(major):
     return values_i, values_r
 
 
-def get_area_ortho(total_colors, darts):
+def get_area_ortho(total_colors, darts, n):
     """
     Throw darts in the domain and count how many hit the mandelbrot.
     Calculate area with orthogonal sampling.
     """
     hits = 0
+    hit_list = []
 
-    # Split into four matrixes
-    x = np.split(np.array(total_colors), 4)
+    # Split into n*n matrices, n square so you get a nice grid
+    x = np.split(np.array(total_colors), n * n)
 
     # get part
     part = int(np.floor(darts / 4))
@@ -148,25 +160,31 @@ def get_area_ortho(total_colors, darts):
 
         # Get a sample in every matrix
         for j in x:
-            # check if it landed in the mandelbrot
-            color = random.choice(total_colors)
+            # # check if it landed in the mandelbrot
+            # color = random.choice(total_colors)
+
+            # check if it landed in the mandelbrot + remember where darts where thrown
+            index = randrange(len(total_colors))
+            color = total_colors[index]
+            hit_list.append(index)
+
             if color == 0:
                 hits += 1
 
     area = (hits / darts) * 6
 
-    return area
+    return area, hit_list
 
 
 def compare_area(iterations, darts):
-    area_is = get_area(make_mandelbrot(iterations), darts)
+    area_is = get_area(make_mandelbrot(iterations), darts)[0]
 
     compare_list = []
     j_list = []
     area_js_list = []
     for j in range(iterations - 1):
         iterations = j + 1
-        area_js = get_area(make_mandelbrot(j + 1), darts)
+        area_js = get_area(make_mandelbrot(j + 1), darts)[0]
         difference = area_js - area_is
         compare_list.append(difference)
         j_list.append(j + 1)
@@ -198,7 +216,7 @@ def compare_i(max_iterations, darts):
 
     area_list = []
     for i in range(max_iterations - 1):
-        area_i = get_area(make_mandelbrot(i + 1), darts)
+        area_i = get_area(make_mandelbrot(i + 1), darts)[0]
         area_list.append(area_i)
 
     plt.xlabel("Number of iterations")
@@ -211,8 +229,8 @@ def compare_s(iterations, max_darts):
 
     area_list = []
     for s in range(max_darts - 1):
-        area_i = get_area(make_mandelbrot(iterations), s + 1)
-        # area_i = get_area_ortho(make_mandelbrot(s + 1), s + 1)
+        area_i = get_area(make_mandelbrot(iterations), s + 1)[0]
+        # area_i = get_area_ortho(make_mandelbrot(s + 1), s + 1)[0]
         area_list.append(area_i)
 
     # plt.xlabel("Number of iterations")
@@ -251,6 +269,41 @@ def make_mandelbrot(iterations):
             total_colors.append(color)
 
     # im.show()
+
+    return total_colors
+
+def show_samples(total_colors, hit_list):
+    """
+    Return a list of colors in the Mandelbrot set.
+    """
+    im = Image.new('RGB', (WIDTH, HEIGHT), (0, 0, 0))
+    draw = ImageDraw.Draw(im)
+
+    color_count = 0
+    drawn_list = []
+    for x in range(0, WIDTH):
+        for y in range(0, HEIGHT):
+
+            # plot the point
+            color = total_colors[color_count]
+            if color_count in hit_list:
+                draw.point([x, y], (255, 0, 0))
+
+                # also color surrounding pixel to make samples more visible
+                xlist = [x - 1, x + 1]
+                ylist = [y - 1, y + 1]
+                drawn_list = []
+                for xsample in xlist:
+                    for ysample in ylist:
+                        draw.point([xsample, ysample], (255, 0, 0))
+                        drawn_list.append([xsample, ysample])
+
+            else:
+                if [x, y] not in drawn_list:
+                    draw.point([x, y], (color, color, color))
+            color_count += 1
+
+    im.show()
 
     return total_colors
 
@@ -360,4 +413,9 @@ if __name__ == '__main__':
     # vars, means = calculate_variance(iterations, darts)
     # make_barplot(vars, means)
 
-    make_linegraph()
+    # make_linegraph()
+
+    # show samples in plot 
+    total_colors = make_mandelbrot(20)
+    hit_list = get_area_ortho(total_colors, 100, 2)[1]
+    show_samples(total_colors, hit_list)
