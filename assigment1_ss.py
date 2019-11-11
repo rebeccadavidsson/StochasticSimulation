@@ -32,8 +32,10 @@ def mandelbrot(c, max_iterations):
 # Image size (pixels)
 # WIDTH = 600
 # HEIGHT = 400
-WIDTH = 100
-HEIGHT = 100
+WIDTH = 40
+HEIGHT = 40
+
+methods = ["pure", "pure antithetic", "LHS", "LHS antithetic", "ortho", "ortho antithetic"]
 
 # Plot window
 RE_START = -2
@@ -66,6 +68,43 @@ def get_area(total_colors, darts):
     return area
 
 
+def get_area_antithetic(total_colors, darts):
+    """
+    Throw darts darts in the domain and count how many hit the mandelbrot.
+    Calculate area with that number.
+    """
+    hits_i = 0
+    hits_a = 0
+
+    random_nrs_i = np.random.uniform(0, 1, darts)
+    random_nrs_a = 1-random_nrs_i
+
+    # throw darts
+    for i in range(len(random_nrs_i)):
+
+        x = int(round(random_nrs_i[i] * len(total_colors)))
+        x_a = int(round(random_nrs_a[i] * len(total_colors)))
+
+        if x > len(total_colors) - 1:
+            x = int(x - 1)
+        if x_a > len(total_colors) - 1:
+            x_a = int(x - 1)
+
+        # check if it landed in the mandelbrot
+        color_i = total_colors[x]
+        color_a = total_colors[x_a]
+
+        if color_i == 0:
+            hits_i += 1
+        if color_a == 0:
+            hits_a += 1
+
+    area_i = (hits_i / darts) * 6
+    area_a = (hits_a / darts) * 6
+
+    # Unbiased estimator of area
+    return (area_i + area_a) / 2
+
 def get_area_lhs(total_colors, darts, ortho):
     """
     Throw darts darts in the domain and count how many hit the mandelbrot.
@@ -77,7 +116,7 @@ def get_area_lhs(total_colors, darts, ortho):
     lhd = lhs(2, samples=darts)
 
     # TODO, dit is gehardcode!!!
-    HEIGHT, WIDTH = 20, 20
+    HEIGHT, WIDTH = 40, 40
     if ortho is False:
         total_colors = np.array(total_colors).reshape(HEIGHT, WIDTH)
     else:
@@ -108,13 +147,59 @@ def get_area_lhs(total_colors, darts, ortho):
     return hits
 
 
+def get_area_lhs_a(total_colors, darts, ortho):
+    """
+    Throw darts darts in the domain and count how many hit the mandelbrot.
+    Get random numbers through the LHS method.
+    """
+    hits = 0
+    hits_a = 0
+    HEIGHT, WIDTH = 40, 40
+
+    # Get list of latin-hybercube sampled values in 2 dimensions (X and Y)
+    lhd = lhs(2, samples=darts)
+
+    if ortho is False:
+        total_colors = np.array(total_colors).reshape(HEIGHT, WIDTH)
+    else:
+        HEIGHT = HEIGHT / 2
+        WIDTH = WIDTH / 2
+        total_colors = np.array(total_colors).reshape(int(HEIGHT), int(WIDTH))
+
+
+    for j in range(len(lhd)):
+
+        # Get x and y coordinate
+        x, y = lhd[j][0], lhd[j][1]
+        x_a = 1 - x
+        y_a = 1 - y
+        x, y = (int(round(x * WIDTH))), (int(round(y * HEIGHT)))
+        x_a, y_a = (int(round(x_a * WIDTH))), (int(round(y_a * HEIGHT)))
+        if x > WIDTH - 1:
+            x = int(WIDTH - 1)
+        if y > HEIGHT - 1:
+            y = int(HEIGHT - 1)
+        if x_a > WIDTH - 1:
+            x_a = int(WIDTH - 1)
+        if y_a > HEIGHT - 1:
+            y_a = int(HEIGHT - 1)
+        color = total_colors[y][x]
+        color_a = total_colors[y_a][x_a]
+        if color == 0:
+            hits += 1
+        if color_a == 0:
+            hits_a += 1
+
+    area = (hits / darts) * 6
+    area_a = (hits_a / darts) * 6
+    if ortho is False:
+        return (area + area_a) / 2
+    return hits
+
+
 def generate_o(major):
     values_i = []
     values_r = []
-    max_i = 10
-    min_i = 1
-    max_r = 2
-    min_r = 5
 
     samples = major * major
 
@@ -166,6 +251,34 @@ def get_area_ortho(total_colors, darts):
     area = (hits / darts) * 6
     # print("AREA", area)
     return area
+
+def get_area_ortho_a(total_colors, darts):
+    """
+    Throw darts in the domain and count how many hit the mandelbrot.
+    Calculate area with orthogonal sampling.
+    """
+    hits = 0
+    hits_a = 0
+
+
+    # Split into four matrixes
+    x = np.split(np.array(total_colors), 4)
+
+    # get part
+    part = int(np.floor(darts / 4))
+    hits = 0
+    # throw darts
+    for i in range(part):
+
+        # Get a sample in every matrix
+        for j in x:
+            hits += get_area_lhs(j, 1, ortho=True)
+            hits_a += get_area_lhs_a(j, 1, ortho=True)
+
+    area = (hits / darts) * 6
+    area_a = (hits_a / darts) * 6
+    # print("AREA", area)
+    return (area + area_a) / 2
 
 
 def compare_area(iterations, darts):
@@ -220,17 +333,29 @@ def compare_i(max_iterations, darts):
 def compare_s(iterations, max_darts, method):
 
     area_list = []
-    n = 100
+    n = max_darts
 
     if method == "pure":
         for s in range(n):
             area_i = get_area(make_mandelbrot(iterations), s + 1)
             area_list.append(area_i)
+    elif method == "pure antithetic":
+        for s in range(n):
+            area_i = get_area_antithetic(make_mandelbrot(iterations), s + 1)
+            area_list.append(area_i)
     elif method == "LHS":
         for s in range(n):
-            area_i = get_area_lhs(make_mandelbrot(iterations), s + 1)
+            area_i = get_area_lhs(make_mandelbrot(iterations), s + 1, ortho=False)
+            area_list.append(area_i)
+    elif method == "LHS antithetic":
+        for s in range(n):
+            area_i = get_area_lhs_a(make_mandelbrot(iterations), s + 1, ortho=False)
             area_list.append(area_i)
     elif method == "ortho":
+        for s in range(n):
+            area_i = get_area_ortho(make_mandelbrot(iterations), s + 1)
+            area_list.append(area_i)
+    elif method == "ortho antithetic":
         for s in range(n):
             area_i = get_area_ortho(make_mandelbrot(iterations), s + 1)
             area_list.append(area_i)
@@ -375,7 +500,7 @@ def calculate_variance(n, darts, method):
         means.append(np.mean(areas))
         print(method, "var", round(np.var(areas), 2), "mean", round(np.mean(areas), 2))
 
-        print((1.96 * np.var(areas) / np.sqrt(i)))
+        print("formula", (1.96 * np.var(areas) / np.sqrt(i)))
         i += 1
 
     print("_________________________")
@@ -386,20 +511,19 @@ def make_barplot(vars, means):
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    methods = ["pure", "LHS", "ortho"]
     width = 0.27
-    ticks = 3
+    ticks = 6
     ind = np.arange(ticks)
 
     yvals = vars
     rects1 = ax.bar(ind, yvals, width, color='r')
-    zvals = means
-    rects2 = ax.bar(ind+width, zvals, width, color='g')
+    # zvals = means
+    # rects2 = ax.bar(ind+width, zvals, width, color='g')
 
     ax.set_ylabel('Scores')
     ax.set_xticks(ind)
-    ax.set_xticklabels(["Pure random", "LHS", "orthogonal"])
-    ax.legend((rects1[0], rects2[0]), ('Variance', 'Mean estimated area'), loc="upper center", bbox_to_anchor=(0.5, -0.05),shadow=True, ncol=2)
+    ax.set_xticklabels(["Pure random", "pure antithetic",  "LHS", "LHS antithetic", "orthogonal", "orthogonal antithetic"])
+    # ax.legend((rects1[0], rects2[0]), ('Variance', 'Mean estimated area'), loc="upper center", bbox_to_anchor=(0.5, -0.05),shadow=True, ncol=2)
 
     def autolabel(rects):
         for rect in rects:
@@ -408,19 +532,19 @@ def make_barplot(vars, means):
                     ha='center', va='bottom')
 
     autolabel(rects1)
-    autolabel(rects2)
-    plt.title("n = 100, darts = 100")
+    # autolabel(rects2)
+    plt.title("iterations = 20, darts = 30")
 
     plt.show()
 
 
 def make_linegraph():
-    methods = ["pure", "LHS", "ortho"]
+
     iterations = 5
     darts = 5
     totalvars, totalmeans, iteration, CLT_iterations_list = [], [], [], []
     for method in methods:
-        for i in range(1, 12):
+        for i in range(1, 3):
             vars, means, CLT_iterations = calculate_variance(iterations, darts, method)
             totalvars.append(vars)
             totalmeans.append(means)
@@ -507,10 +631,10 @@ def generate_a(darts, sampling):
 
 if __name__ == '__main__':
 
-    methods = ["pure", "LHS", "ortho"]
+
     # # Barplot :)
     iterations = 20
-    darts = 50
+    darts = 30
     #
     # calculate_variance(iterations, darts, "ortho")
     totalvars, totalmeans, CLT_iterations_list = [], [], []
@@ -521,20 +645,21 @@ if __name__ == '__main__':
         totalmeans.append(np.mean(means))
         CLT_iterations_list.append(np.mean(CLT_iterations))
         # print(i, CLT_iterations)
+    print(totalvars)
+    print(totalmeans)
     print(CLT_iterations_list)
-    make_barplot(totalvars, totalmeans)
 
-    plt.bar([1,2,3], CLT_iterations_list)
+    # make_barplot(totalvars, totalmeans)
+    make_barplot(totalvars, CLT_iterations_list)
+
+    plt.bar([1,2,3,4, 5, 6], CLT_iterations_list)
     plt.ylabel("Samples")
-    plt.xlabel(["Pure random", "LHS", "orthogonal"])
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111)
-    # ticks = 3
-    # ind = np.arange(ticks)
-    # ax.set_ylabel('Scores')
-    # ax.set_xticks(ind)
-    # ax.set_xticklabels(["Pure random", "LHS", "orthogonal"])
-    # ax.legend((rects1[0], rects2[0]), ('Variance', 'Mean estimated area'), loc="upper center", bbox_to_anchor=(0.5, -0.05),shadow=True, ncol=2)
+    # plt.xlabel(["Pure random", "LHS", "orthogonal"]) fig = plt.figure() ax =
+    # fig.add_subplot(111) ticks = 3 ind = np.arange(ticks)
+    # ax.set_ylabel('Scores') ax.set_xticks(ind) ax.set_xticklabels(["Pure
+    # random", "LHS", "orthogonal"]) ax.legend((rects1[0], rects2[0]),
+    # ('Variance', 'Mean estimated area'), loc="upper center",
+    # bbox_to_anchor=(0.5, -0.05),shadow=True, ncol=2)
     plt.show()
 
     # make_linegraph()
