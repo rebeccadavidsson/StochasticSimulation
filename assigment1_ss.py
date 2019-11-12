@@ -200,11 +200,17 @@ def get_area_lhs_a(total_colors, darts, ortho):
 def generate_o(major):
     values_i = []
     values_r = []
+    min_r = 0
+    max_r = 1
+    min_i = 0
+    max_i = 1
+    diff_i = 1
+    diff_r = 1
 
     samples = major * major
 
-    scale_i = (max_i - min_i) / samples
-    scale_r = (max_r - min_r) / samples
+    scale_i = (diff_i) / samples
+    scale_r = (diff_r) / samples
 
     xlist = [[0 for i in range(major)] for j in range(major)]
     ylist = [[0 for i in range(major)] for j in range(major)]
@@ -219,12 +225,42 @@ def generate_o(major):
     np.random.shuffle(xlist)
     np.random.shuffle(ylist)
 
+
     for i in range(major):
         for j in range(major):
             values_i.append(min_i + scale_i * (xlist[i][j] + np.random.random() ))
-            values_r.append(min_r + scale_r * (xlist[j][i] + np.random.random() ))
+            values_r.append(min_r + scale_r * (ylist[j][i] + np.random.random() ))
+
+
+    if len(set(values_i)) == len(values_i):
+        print("chilllll")
+
+    if len(set(values_r)) == len(values_r):
+        print("wiehoeee")
 
     return values_i, values_r
+
+
+# @jit
+# def ortho_sampling(n=1000):
+#     samples = n**2
+#     xlist = np.zeros((n,n))
+#     ylist = np.zeros((n,n))
+#     scale = 4.0 / samples
+#     m = 0
+#     for i in range(n):
+#         for j in range(n):
+#             m += 1
+#             xlist[i,j] = ylist[i,j] = m
+#     for k in range(samples):
+#         for i in range(n):
+#             xlist[i,:] = np.random.permutation(xlist[i,:])
+#             ylist[i,:] = np.random.permutation(ylist[i,:])
+#         for i in range(n):
+#             for j in range(n):
+#                 xlist[i,j] = -2 + scale*(xlist[i,j] + np.uniform(1))
+#                 ylist[i,j] = -2 + scale*(ylist[i,j] + np.uniform(1))
+#     return xlist, ylist
 
 
 def get_area_ortho(total_colors, darts):
@@ -631,46 +667,48 @@ def generate_a(darts, sampling):
 
 if __name__ == '__main__':
 
+    generate_o(17)
 
-    # # Barplot :)
-    iterations = 20
-    darts = 30
+# all rebecca's dingen even gecomment :)
+    # # # Barplot :)
+    # iterations = 20
+    # darts = 30
+    # #
+    # # calculate_variance(iterations, darts, "ortho")
+    # totalvars, totalmeans, CLT_iterations_list = [], [], []
+    # for method in methods:
+    #     for i in range(8):
+    #         vars, means, CLT_iterations = calculate_variance(iterations, darts, method)
+    #     totalvars.append(np.mean(vars))
+    #     totalmeans.append(np.mean(means))
+    #     CLT_iterations_list.append(np.mean(CLT_iterations))
+    #     # print(i, CLT_iterations)
+    # print(totalvars)
+    # print(totalmeans)
+    # print(CLT_iterations_list)
     #
-    # calculate_variance(iterations, darts, "ortho")
-    totalvars, totalmeans, CLT_iterations_list = [], [], []
-    for method in methods:
-        for i in range(8):
-            vars, means, CLT_iterations = calculate_variance(iterations, darts, method)
-        totalvars.append(np.mean(vars))
-        totalmeans.append(np.mean(means))
-        CLT_iterations_list.append(np.mean(CLT_iterations))
-        # print(i, CLT_iterations)
-    print(totalvars)
-    print(totalmeans)
-    print(CLT_iterations_list)
-
-    # make_barplot(totalvars, totalmeans)
-    make_barplot(totalvars, CLT_iterations_list)
-
-    plt.bar([1,2,3,4, 5, 6], CLT_iterations_list)
-    plt.ylabel("Samples")
-    # plt.xlabel(["Pure random", "LHS", "orthogonal"]) fig = plt.figure() ax =
-    # fig.add_subplot(111) ticks = 3 ind = np.arange(ticks)
-    # ax.set_ylabel('Scores') ax.set_xticks(ind) ax.set_xticklabels(["Pure
-    # random", "LHS", "orthogonal"]) ax.legend((rects1[0], rects2[0]),
-    # ('Variance', 'Mean estimated area'), loc="upper center",
-    # bbox_to_anchor=(0.5, -0.05),shadow=True, ncol=2)
-    plt.show()
-
-    # make_linegraph()
-
-
-    # iterations = 100
-    # darts = 50
-    # compare_area(iterations, darts)
-    # areas = []
-    # for i in range(10):
-    #     areas.append(compare_s(iterations, darts, "pure"))
+    # # make_barplot(totalvars, totalmeans)
+    # make_barplot(totalvars, CLT_iterations_list)
     #
-    # plt.plot(areas)
+    # plt.bar([1,2,3,4, 5, 6], CLT_iterations_list)
+    # plt.ylabel("Samples")
+    # # plt.xlabel(["Pure random", "LHS", "orthogonal"]) fig = plt.figure() ax =
+    # # fig.add_subplot(111) ticks = 3 ind = np.arange(ticks)
+    # # ax.set_ylabel('Scores') ax.set_xticks(ind) ax.set_xticklabels(["Pure
+    # # random", "LHS", "orthogonal"]) ax.legend((rects1[0], rects2[0]),
+    # # ('Variance', 'Mean estimated area'), loc="upper center",
+    # # bbox_to_anchor=(0.5, -0.05),shadow=True, ncol=2)
     # plt.show()
+    #
+    # # make_linegraph()
+    #
+    #
+    # # iterations = 100
+    # # darts = 50
+    # # compare_area(iterations, darts)
+    # # areas = []
+    # # for i in range(10):
+    # #     areas.append(compare_s(iterations, darts, "pure"))
+    # #
+    # # plt.plot(areas)
+    # # plt.show()

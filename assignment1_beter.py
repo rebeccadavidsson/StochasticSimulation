@@ -69,8 +69,44 @@ def get_area(total_colors, darts):
 
     return area, hit_list
 
+# DIT IS DIE VAN SANNE MET OUDE VERSIE NOG EVENTEJS BEWAREN VOOR TEST
+# def get_area_lhs(total_colors, darts):
+#     """
+#     Throw darts darts in the domain and count how many hit the mandelbrot.
+#     Get random numbers through the LHS method.
+#     """
+#     hits = 0
+#     hit_list = []
+#
+#     # Get list of latin-hybercube sampled values in 2 dimensions (X and Y)
+#     lhd = lhs(2, samples=darts)
+#
+#     total_colors = np.array(total_colors).reshape(HEIGHT, WIDTH)
+#     color_row = len(total_colors[0])
+#
+#     count = 0
+#     for j in range(len(lhd)):
+#
+#         # Get x and y coordinate
+#         x, y = lhd[j][0], lhd[j][1]
+#         x = (int(round(x * WIDTH)))
+#         y = (int(round(y * HEIGHT)))
+#         if x > WIDTH - 1:
+#             x = WIDTH - 1
+#         if y > HEIGHT - 1:
+#             y = HEIGHT - 1
+#         color = total_colors[y][x]
+#
+#         if color == 0:
+#             hits += 1
+#
+#         hit_list.append((y) * color_row + x)
+#
+#     area = (hits / darts) * 6
+#
+#     return area, hit_list
 
-def get_area_lhs(total_colors, darts):
+def get_area_lhs(total_colors, darts, ortho):
     """
     Throw darts darts in the domain and count how many hit the mandelbrot.
     Get random numbers through the LHS method.
@@ -81,8 +117,16 @@ def get_area_lhs(total_colors, darts):
     # Get list of latin-hybercube sampled values in 2 dimensions (X and Y)
     lhd = lhs(2, samples=darts)
 
-    total_colors = np.array(total_colors).reshape(HEIGHT, WIDTH)
-    color_row = len(total_colors[0])
+    # TODO, dit is gehardcode!!! aaaaah height width autismeeee
+    HEIGHT, WIDTH = 400, 600
+    if ortho is False:
+        total_colors = np.array(total_colors).reshape(HEIGHT, WIDTH)
+        color_row = len(total_colors[0])
+
+    else:
+        HEIGHT = HEIGHT / 2
+        WIDTH = WIDTH / 2
+        total_colors = np.array(total_colors).reshape(int(HEIGHT), int(WIDTH))
 
     count = 0
     for j in range(len(lhd)):
@@ -92,9 +136,9 @@ def get_area_lhs(total_colors, darts):
         x = (int(round(x * WIDTH)))
         y = (int(round(y * HEIGHT)))
         if x > WIDTH - 1:
-            x = WIDTH - 1
+            x = int(WIDTH - 1)
         if y > HEIGHT - 1:
-            y = HEIGHT - 1
+            y = int(HEIGHT - 1)
         color = total_colors[y][x]
 
         if color == 0:
@@ -102,9 +146,14 @@ def get_area_lhs(total_colors, darts):
 
         hit_list.append((y) * color_row + x)
 
+
     area = (hits / darts) * 6
 
-    return area, hit_list
+    if ortho is False:
+        return area, hit_list
+    return hits
+
+
 
 
 def generate_o(major):
@@ -185,29 +234,32 @@ def compare_area(iterations, darts):
     for j in range(iterations - 1):
         iterations = j + 1
         area_js = get_area(make_mandelbrot(j + 1), darts)[0]
-        difference = area_js - area_is
+        difference = abs(area_js - area_is)
         compare_list.append(difference)
         j_list.append(j + 1)
         area_js_list.append(area_js)
 
         # if difference < compare_list[-1]:
 
+    # DIT IS HET INTERESSANTE OM TE PLOTTEN
     # plt.xlabel("j")
     # plt.ylabel("A_j,s - A_i,s")
     # plt.plot(j_list, compare_list)
     # plt.show()
     #
-    plt.xlabel("j")
-    plt.ylabel("A_j,s")
-    plt.plot(j_list, area_js_list)
-    area_line = []
-    for i in range(len(j_list)):
-        area_line.append(1.507)
-    plt.plot(j_list, area_line)
-    plt.show()
 
-    print(area_js_list)
-    print(sum(area_js_list)/len(area_js_list))
+
+    # plt.xlabel("j")
+    # plt.ylabel("A_j,s")
+    # plt.plot(j_list, area_js_list)
+    # area_line = []
+    # for i in range(len(j_list)):
+    #     area_line.append(1.507)
+    # plt.plot(j_list, area_line)
+    # plt.show()
+
+    # print(area_js_list)
+    # print(sum(area_js_list)/len(area_js_list))
 
     return compare_list
 
@@ -325,7 +377,7 @@ def show_samples(total_colors, hit_list):
                 # also color surrounding pixel to make samples more visible
                 xlist = [x - 1, x + 1]
                 ylist = [y - 1, y + 1]
-                drawn_list = []
+                # drawn_list = []
                 for xsample in xlist:
                     for ysample in ylist:
                         draw.point([xsample, ysample], (255, 0, 0))
@@ -337,6 +389,8 @@ def show_samples(total_colors, hit_list):
             color_count += 1
 
     im.show()
+    # im.save("sampling_im_i_30_s_300_purerandom")
+
 
     return total_colors
 
@@ -454,9 +508,33 @@ if __name__ == '__main__':
     # show_samples(total_colors, hit_list)
 
     n = 10
-    iterations = 20
+    iterations = 30
     max_samples = 1000
     samples = 300
     max_iterations = 500
     # compare_s_variance(n, iterations, max_samples)
     # compare_i_variance(n, max_iterations, samples)
+
+    # show samples in plot
+    total_colors = make_mandelbrot(iterations)
+    hit_list = get_area_lhs(total_colors, samples, False)[1]
+    show_samples(total_colors, hit_list)
+
+    # compare_list = []
+    # for i in range(n):
+    #     compared = compare_area(iterations, samples)
+    #     compare_list.append(compared)
+    #
+    # variance_list = []
+    # for i in range(iterations - 1):
+    #     compare = []
+    #     for j in range(n):
+    #         compare.append(compare_list[j][i])
+    #     variance = np.var(compare)
+    #     variance_list.append(variance)
+    #
+    # plt.xlabel("j")
+    # plt.ylabel("Variance")
+    # plt.title("Variance of 10 runs of |A_j,s - A_i,s|")
+    # plt.plot(range(1, iterations), variance_list)
+    # plt.show()
