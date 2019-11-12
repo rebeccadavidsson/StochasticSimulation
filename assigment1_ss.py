@@ -259,7 +259,6 @@ def generate_o(total_colors, major, antithetic):
     if antithetic is True:
         return (area + area_a) / 2
     return area
->>>>>>> afc8d8c11cce565461c995760c78930250a92a9c
 
 
 
