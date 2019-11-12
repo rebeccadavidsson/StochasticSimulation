@@ -219,9 +219,29 @@ def compare_i(max_iterations, darts):
         area_i = get_area(make_mandelbrot(i + 1), darts)[0]
         area_list.append(area_i)
 
+    return area_list
+
+def compare_i_variance(n, max_iterations, darts):
+    """
+    Compute the variance n times and plot the mean, max and min value of the variances
+    """
+
+    areas = []
+    for i in range(n):
+        area_list = compare_i(max_iterations, samples)
+        areas.append(area_list)
+
+    variances = []
+    for i in range(max_iterations - 1):
+        variance_list = []
+        for j in range(n):
+            variance_list.append(areas[j][i])
+        variances.append(np.var(variance_list))
+
+
     plt.xlabel("Number of iterations")
-    plt.ylabel("Area_i,s")
-    plt.plot(range(1, max_iterations), area_list)
+    plt.ylabel("Variance")
+    plt.plot(range(1, max_iterations), variances)
     plt.show()
 
 
@@ -230,19 +250,32 @@ def compare_s(iterations, max_darts):
     area_list = []
     for s in range(max_darts - 1):
         area_i = get_area(make_mandelbrot(iterations), s + 1)[0]
-        # area_i = get_area_ortho(make_mandelbrot(s + 1), s + 1)[0]
         area_list.append(area_i)
 
-    # plt.xlabel("Number of iterations")
-    # plt.ylabel("Area_i,s")
-    # plt.plot(range(1, max_darts), area_list)
-    # area_line = []
-    # print(len(area_list))
-    # for i in range(len(area_list)):
-    #     area_line.append(1.507)
-    # plt.plot(range(1, max_darts), area_line)
-    # plt.show()
     return area_list
+
+
+def compare_s_variance(n, iterations, max_darts):
+    """
+    Compute the variance n times and plot the mean, max and min value of the variances
+    """
+
+    areas = []
+    for i in range(n):
+        area_list = compare_s(iterations, max_darts)
+        areas.append(area_list)
+
+    variances = []
+    for i in range(max_darts - 1):
+        variance_list = []
+        for j in range(n):
+            variance_list.append(areas[j][i])
+        variances.append(np.var(variance_list))
+
+    plt.xlabel("Number of samples")
+    plt.ylabel("Variance")
+    plt.plot(range(1, max_darts), variances)
+    plt.show()
 
 
 def make_mandelbrot(iterations):
@@ -415,7 +448,15 @@ if __name__ == '__main__':
 
     # make_linegraph()
 
-    # show samples in plot 
-    total_colors = make_mandelbrot(20)
-    hit_list = get_area_ortho(total_colors, 100, 2)[1]
-    show_samples(total_colors, hit_list)
+    # # show samples in plot
+    # total_colors = make_mandelbrot(20)
+    # hit_list = get_area(total_colors, 2400)[1]
+    # show_samples(total_colors, hit_list)
+
+    n = 10
+    iterations = 20
+    max_samples = 1000
+    samples = 300
+    max_iterations = 500
+    # compare_s_variance(n, iterations, max_samples)
+    # compare_i_variance(n, max_iterations, samples)
