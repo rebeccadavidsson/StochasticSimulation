@@ -192,13 +192,13 @@ def get_area_lhs_a(total_colors, darts, ortho):
 def generate_o(total_colors, major, antithetic):
     values_i = []
     values_r = []
+
     min_i, min_r = 0, 0
     max_i, max_r = 1, 1
     # major = np.sqrt(major)
 
     samples = major * major
     darts = samples
-
 
     scale_i = (max_i - min_i) / samples
     scale_r = (max_r - min_r) / samples
@@ -218,6 +218,7 @@ def generate_o(total_colors, major, antithetic):
 
     np.random.shuffle(xlist)
     np.random.shuffle(ylist)
+
 
     for i in range(major):
         for j in range(major):
@@ -255,6 +256,28 @@ def generate_o(total_colors, major, antithetic):
         return (area + area_a) / 2
     return area
 
+
+
+# @jit
+# def ortho_sampling(n=1000):
+#     samples = n**2
+#     xlist = np.zeros((n,n))
+#     ylist = np.zeros((n,n))
+#     scale = 4.0 / samples
+#     m = 0
+#     for i in range(n):
+#         for j in range(n):
+#             m += 1
+#             xlist[i,j] = ylist[i,j] = m
+#     for k in range(samples):
+#         for i in range(n):
+#             xlist[i,:] = np.random.permutation(xlist[i,:])
+#             ylist[i,:] = np.random.permutation(ylist[i,:])
+#         for i in range(n):
+#             for j in range(n):
+#                 xlist[i,j] = -2 + scale*(xlist[i,j] + np.uniform(1))
+#                 ylist[i,j] = -2 + scale*(ylist[i,j] + np.uniform(1))
+#     return xlist, ylist
 
 
 def get_area_ortho(total_colors, darts):
