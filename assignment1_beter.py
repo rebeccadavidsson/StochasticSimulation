@@ -278,29 +278,7 @@ def compare_area(iterations, darts):
         compare_list.append(difference)
         j_list.append(j + 1)
         area_js_list.append(area_js)
-
-        # if difference < compare_list[-1]:
-
-    # DIT IS HET INTERESSANTE OM TE PLOTTEN
-    # plt.xlabel("j")
-    # plt.ylabel("A_j,s - A_i,s")
-    # plt.plot(j_list, compare_list)
-    # plt.show()
-    #
-
-
-    # plt.xlabel("j")
-    # plt.ylabel("A_j,s")
-    # plt.plot(j_list, area_js_list)
-    # area_line = []
-    # for i in range(len(j_list)):
-    #     area_line.append(1.507)
-    # plt.plot(j_list, area_line)
-    # plt.show()
-
-    # print(area_js_list)
-    # print(sum(area_js_list)/len(area_js_list))
-
+        
     return compare_list
 
 
