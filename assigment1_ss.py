@@ -9,9 +9,8 @@ import seaborn as sns
 from pyDOE import *
 import statistics
 import scipy.linalg
+import time
 sns.set()
-
-
 
 
 @numba.jit(nopython=True)
@@ -25,12 +24,9 @@ def mandelbrot(c, max_iterations):
 
 
 # Image size (pixels)
-# WIDTH = 600
-# HEIGHT = 40
 HEIGHT, WIDTH = 400, 600
 
 methods = ["pure", "pure antithetic", "LHS", "LHS antithetic", "ortho", "ortho antithetic"]
-# methods = ["ortho", "pure antithetic", "LHS", "LHS antithetic", "ortho", "ortho antithetic"]
 
 # Plot window
 RE_START = -2
@@ -511,28 +507,37 @@ def calculate_variance(n, darts, method):
     # n = ((1.96/0.05)^2) * ((area/1.506)-1)
 
 
-    vars, means = [], []
-    areas = [0]
+    vars, means, stds = [], [], []
+    areas = []
     d = 0.05
     i = 1
     total_areas = []
-
+    import time
+    tic = time.clock()
     samplevariance = 1
+
     while samplevariance > d or i < 100:
         # total = []
         # for i in range(min, max):
         #     total.append(compare_s(i, 10))
-        areas.append(compare_s(n, darts, method)[0]-0.1)
-        vars.append(statistics.variance(areas))
-        print(statistics.variance(areas))
-        means.append(np.mean(areas))
-        samplevariance = (1.96 * statistics.variance(areas) / np.sqrt(i))
-        print(method,  "mean", round(np.mean(areas), 2))
-        print("formula", (1.96 * statistics.variance(areas) / np.sqrt(i)))
+
+        areas.append(compare_s(n, darts, method)[0]-0.15)
+
+        if i > 2:
+            # vars.append(statistics.variance(areas))
+            vars.append(np.var(areas))
+            stds.append(np.std(areas))
+            means.append(np.mean(areas))
+            samplevariance = (1.96 * statistics.variance(areas) / np.sqrt(i))
+            print(method,  "mean", round(np.mean(areas), 3))
+            print("formula", (1.96 * statistics.variance(areas) / np.sqrt(i)))
         i += 1
 
+    toc = time.clock()
+    print(tic, toc)
+    print(toc - tic)
     print("_________________________")
-    return vars, means, i
+    return vars, means, i, toc - tic, stds
 
 
 def make_barplot(vars, means):
@@ -556,13 +561,41 @@ def make_barplot(vars, means):
     def autolabel(rects):
         for rect in rects:
             h = rect.get_height()
-            ax.text(rect.get_x()+rect.get_width()/2., 1.00*h, round(h,3),
+            ax.text(rect.get_x()+rect.get_width()/2., 1.00*h, round(h, 3),
                     ha='center', va='bottom')
 
     autolabel(rects1)
     autolabel(rects2)
     plt.title("iterations = 30, darts = 289")
+    plt.show()
 
+def make_barplot_var(vars, title):
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    width = 0.27
+    ticks = 6
+    ind = np.arange(ticks)
+
+    yvals = vars
+    rects1 = ax.bar(ind, yvals, width, color='r')
+    # zvals = means
+    # rects2 = ax.bar(ind+width, zvals, width, color='g')
+
+    ax.set_ylabel('Scores')
+    ax.set_xticks(ind)
+    ax.set_xticklabels(["Pure", "Pure antithetic",  "LHS", "LHS antithetic", "orthogonal", "orthogonal antithetic"])
+    # ax.legend((rects1[0], rects2[0]), ('Variance', 'Mean estimated area'), loc="upper center", bbox_to_anchor=(0.5, -0.05),shadow=True, ncol=2)
+
+    def autolabel(rects):
+        for rect in rects:
+            h = rect.get_height()
+            ax.text(rect.get_x()+rect.get_width()/2., 1.00*h, round(h, 3),
+                    ha='center', va='bottom')
+
+    autolabel(rects1)
+    # autolabel(rects2)
+    plt.title(title)
     plt.show()
 
 
@@ -570,10 +603,10 @@ def make_linegraph():
 
     iterations = 5
     darts = 5
-    totalvars, totalmeans, iteration, CLT_iterations_list = [], [], [], []
+    totalvars, totalmeans, iteration, CLT_iterations_list, times, stds = [], [], [], [], [], []
     for method in methods:
         for i in range(1, 3):
-            vars, means, CLT_iterations = calculate_variance(iterations, darts, method)
+            vars, means, CLT_iterations, times, stds = calculate_variance(iterations, darts, method)
             totalvars.append(vars)
             totalmeans.append(means)
             iteration.append(i)
@@ -594,69 +627,58 @@ def make_linegraph():
     plt.show()
 
 
-def experiment_a(n, darts, maxiter, sampling):
-
-    hit_area = []
-    for i in range(n):
-
-        rand_values = generate_a(darts, sampling)
-
-        hit, total = iterate (maxiter, rand_values[0], rand_values[1])
-        hit_a, total_a = iterate (maxiter, rand_values[2], rand_values[3])
-
-        area = hit / total * total_volume
-        area_a = hit_a / total_a * total_volume
-
-        hit_area.append((area + area_a) / 2)
-
-        if i % 50 == 0:
-            print(i)
-
-    print (hit + hit_a, total + total_a)
-
-    meanx = mean(hit_area)
-    varx = var(hit_area)
-    stdx = std(hit_area)
-
-    return meanx, varx, stdx
-
-
-# antithetic VARIABLES!!!!!!
-def generate_a(darts, sampling):
-    values_i_a = []
-    values_r_a = []
-    norm_i = []
-    norm_r = []
-    norm_i_a = []
-    norm_r_a = []
-
-#     Generate variables
-    if sampling == "lhs":
-        values_i, values_r = generate_lhs(darts)
-    elif sampling == "o":
-        values_i, values_r = generate_o(darts)
-        darts = darts * darts
-    else:
-        values_i, values_r = generate_r(darts)
-
-#     Normalize random variables
-    for i in range(darts):
-        norm_i.append((values_i[i] - min_i) / (max_i - min_i))
-        norm_r.append((values_r[i] - min_r) / (max_r - min_r))
-
-#     Generate normalized antithetic variables
-    for i in range(darts):
-        norm_i_a.append(1 - norm_i[i])
-        norm_r_a.append(1 - norm_r[i])
-
-#     Denormalize antithetic variables
-    for i in range(darts):
-        values_i_a.append(norm_i_a[i] * (max_i - min_i) + min_i)
-        values_r_a.append(norm_r_a[i] * (max_r - min_r) + min_r)
-
-    return values_i, values_r, values_i_a, values_r_a
-
-
 if __name__ == '__main__':
 
-    pass
+
+    iterations = 30
+    darts = 289
+
+    totalvars, totalmeans, iteration, CLT_iterations_list, times, stds = [], [], [], [], [], []
+    for method in methods:
+
+        for i in range(2):
+            vars, means, CLT_iterations, time, std = calculate_variance(iterations, darts, method)
+        totalvars.append(np.mean(vars))
+        totalmeans.append(np.mean(means))
+        times.append(np.mean(time))
+        stds.append(np.mean(std))
+        CLT_iterations_list.append(np.mean(CLT_iterations))
+    print(totalvars, "vars")
+    print(totalmeans, "means")
+    print(times, "times")
+    print(stds, "stds")
+    print(CLT_iterations_list)
+
+    make_barplot_var(vars, "Variance")
+    make_barplot_var(totalmeans, "Mean estimated area")
+
+    make_barplot(totalvars, totalmeans)
+    # make_barplot(totalvars, CLT_iterations_list)
+
+    firstrow = [CLT_iterations_list[0], CLT_iterations_list[2], CLT_iterations_list[4]]
+    secondrow = [CLT_iterations_list[1], CLT_iterations_list[3], CLT_iterations_list[5]]
+
+    print(firstrow, secondrow)
+    make_barplot(firstrow, secondrow)
+    plt.bar([1,2,3,4, 5, 6], CLT_iterations_list)
+    plt.ylabel("Samples")
+    # plt.xlabel(["Pure random", "LHS", "orthogonal"]) fig = plt.figure() ax =
+    # fig.add_subplot(111) ticks = 3 ind = np.arange(ticks)
+    # ax.set_ylabel('Scores') ax.set_xticks(ind) ax.set_xticklabels(["Pure
+    # random", "LHS", "orthogonal"]) ax.legend((rects1[0], rects2[0]),
+    # ('Variance', 'Mean estimated area'), loc="upper center",
+    # bbox_to_anchor=(0.5, -0.05),shadow=True, ncol=2)
+    plt.show()
+
+    # make_linegraph()
+
+
+    # iterations = 100
+    # darts = 50
+    # compare_area(iterations, darts)
+    # areas = []
+    # for i in range(10):
+    #     areas.append(compare_s(iterations, darts, "pure"))
+    #
+    # plt.plot(areas)
+    # plt.show()

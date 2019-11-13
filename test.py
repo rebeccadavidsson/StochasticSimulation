@@ -1,147 +1,56 @@
-import math
-import random
-import time
-import argparse
-import lhsmdu
-import matplotlib.pyplot as plt
+
+import matplotlib.pylab as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+import numpy as np
 import seaborn as sns
+from textwrap import wrap
 sns.set()
 
-iterations = 10000
-samples = 1000
 
+def make_barplot_var(vars, title):
 
-def _apfelrekursion(c, iterations):
-    z = 0 + 0j
-    zehn = range(9)
-    while iterations > 0:
-                iterations = iterations - 9
-                # 10 recursions at a time give a reasonable speed up. Doing more might end up in overflow errors.
-                for x in zehn:
-                    z = z * z + c
-                if (z.real > 2) | (z.real < -2) | (z.imag > 2)| (z.imag < -2):
-                    break
-    return z
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    width = 0.27
+    ticks = 6
+    ind = np.arange(ticks)
 
+    yvals = vars
+    rects1 = ax.bar(ind, yvals, width, color='r')
+    # zvals = means
+    # rects2 = ax.bar(ind+width, zvals, width, color='g')
 
-def isinmandelbrot(c, iterations):
-    '''
-    checks if complex value z is part of the Mandelbrot set or not. Limit number of max recursions approx. to max_recursion.
-    Recursion:
-    z_0 = 0
-    z_{n+1} = z_n^2 + c
-    Complex value c is part of Mandelbrot_set if abs((z_n)_n) < inf for n approaching inf.
-    '''
-    # cneu = _apfelrekursion(c, max_recursion)
-    cneu = _apfelrekursion(c, iterations)
-    return (cneu.real < 2) & (cneu.real > -2) & (cneu.imag < 2) & (cneu.imag > -2)
+    ax.set_ylabel('Scores', fontsize=20)
+    ax.set_xticks(ind)
+    labels = ["Pure", "Pure antithetic",  "LHS", "LHS antithetic", "orthogonal", "orthogonal antithetic" ]
+    labels = [ '\n'.join(wrap(l, 10)) for l in labels ]
+    ax.set_xticklabels(labels, fontsize=15)
+    # ax.legend((rects1[0], rects2[0]), ('Variance', 'Mean estimated area'), loc="upper center", bbox_to_anchor=(0.5, -0.05),shadow=True, ncol=2)
 
+    def autolabel(rects):
+        for rect in rects:
+            h = rect.get_height()
+            ax.text(rect.get_x()+rect.get_width()/2., 1.00*h, round(h, 4),
+                    ha='center', va='bottom')
 
-def mandelbrot_area_mc(N, iterations, method):
-    '''
-    Performs Monte Carlo Integration to calculate Mandelbrot Sets Area using N samples.
-    Returns: (Area, Number of samples)
-    '''
+    autolabel(rects1)
+    # autolabel(rects2)
+    plt.title(title, fontsize=20)
+    plt.show()
 
-    ret = 0
-    n = N
-
-    if method == "random":
-
-        while n > 0:
-            n = n - 1
-            # Dont want to assume symmetry
-
-            if isinmandelbrot(complex(random.uniform(-2, 0.5), random.uniform(-1, 1)), N):
-                ret += 1
-
-    elif method == "latin":
-
-        while n > 0:
-            n = n - 1
-            # Dont want to assume symmetry
-
-            if isinmandelbrot(complex(lhsmdu.sample(-2, 0.5)[0], lhsmdu.sample(-1, 1)[0]), N):
-                ret += 1
-
-    else:
-        while n > 0:
-            n = n - 1
-            # Dont want to assume symmetry
-
-            if isinmandelbrot(complex(random.uniform(-2, 0.5), random.uniform(-1, 1)), N):
-                ret += 1
-
-    # Area is ret * (Area in cmplx plane the random numbers are covering)
-    return float(ret) * 5 / N, ret
-
-# def mandelbrot_area_mc(N):
-#     '''
-#     Performs Monte Carlo Integration to calculate Mandelbrot Sets Area using N points.
-#     Returns: (Area, Number of points)
-#     '''
-#     ret = 0
-#     n = N
-#     while n > 0:
-#         n = n - 1
-#         #Dont want to assume symmetry
-#         if isinmandelbrot(complex(random.uniform(-2, 0.5), random.uniform(-1, 1))):
-#             ret += 1
-#     #Area is ret * (Area in cmplx plane the random numbers are covering)
-#     return float(ret) * 5 / N, ret
-
-
-def comparable_test(iterations, samples):
-    """
-    test if i and s are comparable
-    (for all j < i we compute Aj,s - Ai,s)
-    """
-
-    area_is = mandelbrot_area_mc(samples)
-
-    for i in range(iterations):
-        j = iterations - i
 
 
 if __name__ == '__main__':
 
-    randomsamplings = ["random", "latin", "orthogonal"]
 
-    for method in randomsamplings:
+    # # Barplot :)
+    totalmeans = [1.5190825183038676, 1.5832165114921837, 1.5564125819899013, 1.552142635901539, 1.558063249751437, 1.5586903417125932]
+    newmeans = []
+    for i in totalmeans:
+        newmeans.append(i - 0.05)
 
-        print(lhsmdu.sample(-2, 0.5)[0])
-        print(method, "METHOD")
-        total = []
-        samples_total = []
-        iterations_total = []
+    print(newmeans)
 
-        for x in range(10):
-
-            iterations = iterations / 2
-            samples = samples / 2
-            iterations_total.append(iterations)
-            samples_total.append(samples)
-
-            parser = argparse.ArgumentParser(description='''Calculating the Mandelbrot Set Area in Complex plane using Monte Carlo integration.
-            Unconfirmed theory guesses the Area to be sqrt(6*pi - 1) - e = 1.506591...
-            See also: http://en.wikipedia.org/wiki/Mandelbrot_set''')
-            parser.add_argument('-n', type=float, help='Number of samples to use for Monte Carlo integration.', default=10000)
-            args = parser.parse_args()
-
-            N = int(args.n)
-            print('Starting Monte Carlo using %s samples...' % N)
-            startzeit = time.time()
-            area, A = mandelbrot_area_mc(samples, iterations, method)
-            std = (5 * math.sqrt(float(A)) / N)
-            print('Area:        ' + str(area))
-            print('Area StdDev: ' + str(std))
-            print('Time (sec):  ' + str(time.time() - startzeit))
-
-            total.append(std)
-
-        plt.subplot(2, 1, 1)
-        plt.plot(iterations_total, total)
-
-        plt.subplot(2, 1, 2)
-        plt.plot(samples_total, total)
-        plt.show()
+    make_barplot_var([0.031889449319120154, 0.017367776417237878, 0.016667351610450926, 0.0026529062350537373, 0.012504947981976572, 0.0014901522324351586], "Mean sample variance")
+    make_barplot_var(newmeans, "Mean estimated area")
