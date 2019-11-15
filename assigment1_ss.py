@@ -5,12 +5,13 @@ import seaborn as sns
 from pyDOE import *
 import statistics
 import time
+from textwrap import wrap
 sns.set()
 
 
 # Image size (pixels)
+HEIGHT, WIDTH = 400, 600
 # HEIGHT, WIDTH = 400, 600
-HEIGHT, WIDTH = 6, 6
 
 # Plot window
 RE_START = -2
@@ -37,11 +38,13 @@ def get_area(total_colors, darts, antithetic):
     Throw darts darts in the domain and count how many hit the mandelbrot.
     Calculate area with that number.
     """
+    antithetic=True
     hits_i = 0
     hits_a = 0
+    hit_list = []
 
     random_nrs_i = np.random.uniform(0, 1, darts)
-    random_nrs_a = 1-random_nrs_i
+    random_nrs_a = 1 - random_nrs_i
 
     # throw darts
     for i in range(len(random_nrs_i)):
@@ -51,8 +54,10 @@ def get_area(total_colors, darts, antithetic):
 
         if x > len(total_colors) - 1:
             x = int(x - 1)
+            hit_list.append(x)
         if x_a > len(total_colors) - 1:
             x_a = int(x - 1)
+            hit_list.append(x_a)
 
         # check if it landed in the mandelbrot
         color_i = total_colors[x]
@@ -78,7 +83,7 @@ def get_area_lhs(total_colors, darts, ortho, antithetic):
     """
     hits = 0
     hits_a = 0
-    HEIGHT, WIDTH = 6, 6
+    HEIGHT, WIDTH = 400, 600
 
     # Get list of latin-hybercube sampled values in 2 dimensions (X and Y)
     lhd = lhs(2, samples=darts)
@@ -178,48 +183,6 @@ def calculatehits_coordinates(values_i, values_r, total_colors):
     return hits, hits_a
 
 
-def compare_area(iterations, darts):
-    """
-    Compare estimated area for different sample sizes and iterations.
-    """
-    area_is = get_area(make_mandelbrot(iterations), darts, antithetic=False)
-
-    compare_list = []
-    j_list = []
-    area_js_list = []
-    for j in range(iterations - 1):
-        iterations = j + 1
-        area_js = get_area(make_mandelbrot(j + 1), darts)
-        difference = area_js - area_is
-        compare_list.append(difference)
-        j_list.append(j + 1)
-        area_js_list.append(area_js)
-
-    plt.xlabel("j")
-    plt.ylabel("A_j,s")
-    plt.plot(j_list, area_js_list)
-    area_line = []
-    for i in range(len(j_list)):
-        area_line.append(1.507)
-    plt.plot(j_list, area_line)
-    plt.show()
-
-    print(area_js_list)
-    print(sum(area_js_list)/len(area_js_list))
-
-    return compare_list
-
-
-def compare_i(max_iterations, darts):
-
-    area_list = []
-    for i in range(max_iterations - 1):
-        area_i = get_area(make_mandelbrot(i + 1), darts)[0]
-        area_list.append(area_i)
-
-    return area_list
-
-
 def all_methods(iterations, max_darts, method):
 
     area_list = []
@@ -315,33 +278,48 @@ def make_barplot_var(vars, title):
     yvals = vars
     rects1 = ax.bar(ind, yvals, width, color='r')
 
-    ax.set_ylabel('Scores')
+    labels = [ '\n'.join(wrap(l, 10)) for l in methods ]
+
+    ax.set_ylabel('Scores', fontsize=15)
     ax.set_xticks(ind)
-    ax.set_xticklabels(["Pure", "Pure antithetic",  "LHS", "LHS antithetic", "orthogonal", "orthogonal antithetic"])
+    ax.set_xticklabels(labels, fontsize=15)
 
     def autolabel(rects):
         for rect in rects:
             h = rect.get_height()
-            ax.text(rect.get_x()+rect.get_width()/2., 1.00*h, round(h, 3),
+            ax.text(rect.get_x()+rect.get_width()/2., 1.00*h, round(h, 5),
                     ha='center', va='bottom')
 
     autolabel(rects1)
-    plt.title(title)
+    plt.title('Sample variance', fontsize=15)
     plt.show()
 
 def compare_area(iterations, darts):
-    area_is = get_area(make_mandelbrot(iterations), darts)[0]
+    """
+    Compare estimated area for different sample sizes and iterations.
+    """
+    area_is = get_area(make_mandelbrot(iterations), darts, antithetic=False)
 
     compare_list = []
     j_list = []
     area_js_list = []
     for j in range(iterations - 1):
         iterations = j + 1
-        area_js = get_area(make_mandelbrot(j + 1), darts)[0]
-        difference = abs(area_js - area_is)
+        area_js = get_area(make_mandelbrot(j + 1), darts, antithetic=False)
+        difference = area_js - area_is
         compare_list.append(difference)
         j_list.append(j + 1)
         area_js_list.append(area_js)
+
+    #  Uncomment this section if you want to plot
+    # plt.xlabel("j")
+    # plt.ylabel("A_j,s")
+    # plt.plot(j_list, area_js_list)
+    # area_line = []
+    # for i in range(len(j_list)):
+    #     area_line.append(1.507)
+    # plt.plot(j_list, area_line)
+    # plt.show()
 
     return compare_list
 
@@ -350,7 +328,7 @@ def compare_i(max_iterations, darts):
 
     area_list = []
     for i in range(max_iterations - 1):
-        area_i = get_area(make_mandelbrot(i + 1), darts)[0]
+        area_i = get_area(make_mandelbrot(i + 1), darts, antithetic=False)
         area_list.append(area_i)
 
     return area_list
@@ -373,7 +351,6 @@ def compare_i_variance(n, max_iterations, darts):
             variance_list.append(areas[j][i])
         variances.append(np.var(variance_list))
 
-
     plt.xlabel("Number of iterations")
     plt.ylabel("Variance")
     plt.plot(range(1, max_iterations), variances)
@@ -384,7 +361,7 @@ def compare_s(iterations, max_darts):
 
     area_list = []
     for s in range(max_darts - 1):
-        area_i = get_area(make_mandelbrot(iterations), s + 1)[0]
+        area_i = get_area(make_mandelbrot(iterations), s + 1, antithetic=False)
         area_list.append(area_i)
 
     return area_list
@@ -417,26 +394,55 @@ def compare_methods():
     iterations = 30
     darts = 289
 
-    totalvars, totalmeans, iteration, CLT_iterations_list, times, stds = [], [], [], [], [], []
+    totalvars, totalmeans, CLT_iterations_list, times, stds = [], [], [], [], []
+    totalvarsprint, totalmeansprint = [], []
     for method in methods:
 
-        for i in range(2):
-            vars, means, CLT_iterations, time, std = calculate_variance(iterations, darts, method)
+        for i in range(10):
+            vars, means, CLT_iterations, time1, std = calculate_variance(iterations, darts, method)
         totalvars.append(np.mean(vars))
+        totalvarsprint.append(vars)
         totalmeans.append(np.mean(means))
-        times.append(np.mean(time))
+        totalmeansprint.append(means)
+        times.append(np.mean(time1))
         stds.append(np.mean(std))
         CLT_iterations_list.append(np.mean(CLT_iterations))
+
+    print("MEAN", totalmeansprint)
+    print("VAR", totalvarsprint)
+    print("")
     print(totalvars, "vars")
     print(totalmeans, "means")
-    print(times, "times")
-    print(stds, "stds")
-    print(CLT_iterations_list)
+    print("TIME", times)
+    print("STD", stds)
 
-    make_barplot_var(vars, "Variance")
-    make_barplot_var(totalmeans, "Mean estimated area")
+
+def compare_area_diff(n, iterations, samples):
+    compare_list = []
+    for i in range(n):
+        compared = compare_area(iterations, samples)
+        compare_list.append(compared)
+
+    variance_list = []
+    for i in range(iterations - 1):
+        compare = []
+        for j in range(n):
+            compare.append(compare_list[j][i])
+        variance = np.var(compare)
+        variance_list.append(variance)
+
+    plt.xlabel("j")
+    plt.ylabel("Variance")
+    plt.title("Variance of 10 runs of |A_j,s - A_i,s|")
+    plt.plot(range(1, iterations), variance_list)
+    plt.show()
 
 
 if __name__ == '__main__':
+    n = 10
+    iterations = 100
+    max_samples = 1000
+    samples = 300
+    max_iterations = 500
 
-    compare_methods()
+    # Call which function to use

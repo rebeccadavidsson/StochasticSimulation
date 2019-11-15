@@ -278,7 +278,7 @@ def compare_area(iterations, darts):
         compare_list.append(difference)
         j_list.append(j + 1)
         area_js_list.append(area_js)
-        
+
     return compare_list
 
 
@@ -534,26 +534,26 @@ if __name__ == '__main__':
     # compare_s_variance(n, iterations, max_samples)
     # compare_i_variance(n, max_iterations, samples)
 
-    # # show samples in plot
+    # show samples in plot
     # total_colors = make_mandelbrot(iterations)
     # hit_list = generate_o(total_colors, 17, False)[1]
     # show_samples(total_colors, hit_list)
 
-    # compare_list = []
-    # for i in range(n):
-    #     compared = compare_area(iterations, samples)
-    #     compare_list.append(compared)
-    #
-    # variance_list = []
-    # for i in range(iterations - 1):
-    #     compare = []
-    #     for j in range(n):
-    #         compare.append(compare_list[j][i])
-    #     variance = np.var(compare)
-    #     variance_list.append(variance)
-    #
-    # plt.xlabel("j")
-    # plt.ylabel("Variance")
-    # plt.title("Variance of 10 runs of |A_j,s - A_i,s|")
-    # plt.plot(range(1, iterations), variance_list)
-    # plt.show()
+    compare_list = []
+    for i in range(n):
+        compared = compare_area(iterations, samples)
+        compare_list.append(compared)
+
+    variance_list = []
+    for i in range(iterations - 1):
+        compare = []
+        for j in range(n):
+            compare.append(compare_list[j][i])
+        variance = np.var(compare)
+        variance_list.append(variance)
+
+    plt.xlabel("j")
+    plt.ylabel("Variance")
+    plt.title("Variance of 10 runs of |A_j,s - A_i,s|")
+    plt.plot(range(1, iterations), variance_list)
+    plt.show()
